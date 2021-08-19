@@ -12,13 +12,10 @@ fetch(`https://api.tfl.gov.uk/StopPoint/${Stop_id}/Arrivals`)
 function getNextfivebuses(json)
 {
     //console.log(json);
-    json.sort(function(a, b)
-    {
-        return (a.timeToStation > b.timeToStation) - (a.timeToStation < b.timeToStation);
-    });
-    console.log("Bus Number\tTowards\t\tDestination\tArrvial in minutes")
+    json.sort((a, b) => {return (a.timeToStation > b.timeToStation) - (a.timeToStation < b.timeToStation)});
+    
     for(var i=0; i<5 && i < json.length;i++)
-        console.log(json[i].lineId+ "\t\t" +json[i].towards+ "\t\t" +json[i].destinationName+ "\t\t"+ Math.ceil(json[i].timeToStation/60));
+        console.log(json[i].lineId+ "\t\t" +json[i].stationName+ "\t\t" +json[i].destinationName+ "\t\t"+ Math.ceil(json[i].timeToStation/60));
 }
 
 
@@ -30,7 +27,7 @@ function getNearestStopPointId(json)
     for(var i = 0; i<json.stopPoints.length && stoppointids.length<2 && json.stopPoints[i].lines.length !=0; i++)
         stoppointids.push(json.stopPoints[i].id);
     console.log(stoppointids);
-
+    console.log("Bus Number\tFrom\t\t\tDestination\tArrvial in minutes\n");
     stoppointids.forEach(stoppointid =>
             fetch(`https://api.tfl.gov.uk/StopPoint/${stoppointid}/Arrivals`)
             .then(response => response.json())
