@@ -27,19 +27,14 @@ var stoppointids= [];
 function getNearestStopPointId(json)
 {
     
-    for(var i = 0; i<2; i++)
-    {
+    for(var i = 0; i<json.stopPoints.length && stoppointids.length<2 && json.stopPoints[i].lines.length !=0; i++)
         stoppointids.push(json.stopPoints[i].id);
-    }
     console.log(stoppointids);
-    
-    fetch(`https://api.tfl.gov.uk/StopPoint/${stoppointids[0]}/Arrivals`)
-    .then(response => response.json())
-    .then(getNextfivebuses)
-    .then(fetch(`https://api.tfl.gov.uk/StopPoint/${stoppointids[1]}/Arrivals`)
-        .then(response => response.json())
-        .then(getNextfivebuses));
 
+    stoppointids.forEach(stoppointid =>
+            fetch(`https://api.tfl.gov.uk/StopPoint/${stoppointid}/Arrivals`)
+            .then(response => response.json())
+            .then(getNextfivebuses)); 
 }
 
 function getAreaStopPoints(json)
