@@ -4,67 +4,74 @@ const FIRST_N_BUSES =5;
 const NUM_NEAREST_STOPPOINTS = 2;
 const RADIUS = 500;
 
-const getEachStopPointArrivals =(pointid) =>{
+/*const getEachStopPointArrivals = (pointid) => {
     fetch(`https://api.tfl.gov.uk/StopPoint/${pointid}/Arrivals`)
             .then(response => response.json())
-            .then((json) => {
+            .then((json) => { 
             if (json.length === 0)  
                 throw `There are no Buses running in stopID ${pointid}`;
             else
-                return json;
+                return (getFirstNbuses(json));
             })
-            .then(getFirstNbuses)
-            .catch((error) => console.log(error)); 
-}
+            .catch(console.log); 
+}*/
 
 const getFirstNbuses= (json) => {
     //console.log(json);
-    json.sort((a, b) => {return (a.timeToStation > b.timeToStation) - (a.timeToStation < b.timeToStation)});
-    
-    for(var i=0; i< FIRST_N_BUSES && i < json.length;i++)
-        console.log(json[i].lineId+ "\t\t" +json[i].stationName+ "\t\t" +json[i].destinationName+ "\t\t"+ Math.ceil(json[i].timeToStation/60));
+    json.sort((a, b) => {return (a.timeToStation > b.timeToStation) - (a.timeToStation < b.timeToStation)})
+    .forEach(element => console.log(element.lineId+ "\t\t" +element.stationName+ "\t\t" +element.destinationName+ "\t\t"+ Math.ceil(element.timeToStation/60)));
 }
 
-
-var stoppointids= [];
-
-const getNearestStopPointId = (json) =>{
-    
-    for(var i = 0; i<json.stopPoints.length && stoppointids.length< NUM_NEAREST_STOPPOINTS /*&& json.stopPoints[i].lines.length !=0*/; i++)
-        stoppointids.push(json.stopPoints[i].id);
-    console.log(stoppointids);
-}
-
-const getBusesforEachStopPoint =(json) =>{
+const getBusesforEachStopPoint =(stopPoints) =>{
     console.log("Bus Number\tFrom\t\t\tDestination\tArrvial in minutes\n");
-    stoppointids.forEach(getEachStopPointArrivals); 
+    stopPoints.forEach(stopPoint => getEachStopPointArrivals(stopPoint.id)); 
 }
 
-const getAreaStopPoints = (json) => {
-    fetch(`https://api.tfl.gov.uk/StopPoint/?lat=${json.result.latitude}&lon=${json.result.longitude}&stopTypes=NaptanPublicBusCoachTram&radius=${RADIUS}`)
+async function getEachStopPointArrivals(pointid)  {
+    const response = await fetch(`https://api.tfl.gov.uk/StopPoint/${pointid}/Arrivals`);
+    const arrivalInfo = await response.json();
+    try{
+        if (arrivalInfo.length === 0)  
+            throw `There are no Buses running in stopID ${pointid}`;
+        return (getFirstNbuses(arrivalInfo));
+    }
+    catch(e){console.log(e);}
+}
+
+const getAreaStopPoints = (latitude,longitude) => {
+    fetch(`https://api.tfl.gov.uk/StopPoint/?lat=${latitude}&lon=${longitude}&stopTypes=NaptanPublicBusCoachTram&radius=${RADIUS}`)
     .then(response => response.json())
     .then((json) => {
     if (json.stopPoints.length === 0)  
         throw `There are no Bus Stops in ${RADIUS}m`;
     else
-        return json;
+        return json.stopPoints.slice(0,NUM_NEAREST_STOPPOINTS);
     })
-    .then(getNearestStopPointId)
-    .then(getBusesforEachStopPoint);
+    .then(getBusesforEachStopPoint)
+    .catch(console.log);
 }
 
-console.log("Enter the PostCode :");
-const Post_code = readline.prompt();
+const getBusstopsTflApp = () => {
+    console.log("Enter the PostCode :");
+    const postcode = readline.prompt(); 
 
-fetch(`http://api.postcodes.io/postcodes/${Post_code}`)
-.then(response => {
-    if (response.status >= 200 && response.status <= 299) 
-      return response.json();
-    else 
-      throw Error(response.status);
-    
-  })
-.then(getAreaStopPoints)
-.catch((Error) =>  {
-                    (Error.message == "404") ? console.log("Invalid Postcode"):console.log("Network Error")
-                    });
+    fetch(`http://api.postcodes.io/postcodes/${postcode}`)
+    .then(response => {
+        if (response.status >= 200 && response.status <= 299) 
+        return response.json();
+        else 
+        throw Error(response.status);
+        
+        })
+    .then((json) => getAreaStopPoints(json.result.latitude,json.result.longitude))
+    .catch((error) =>  {
+            if (error.message == "404")
+            {
+                console.log("Invalid Postcode: Please enter a Valid Postcode");
+                getBusstopsTflApp();
+
+            }else
+            console.log("Error")});
+}
+
+getBusstopsTflApp();
